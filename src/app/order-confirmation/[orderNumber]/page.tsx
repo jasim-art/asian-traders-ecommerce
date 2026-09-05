@@ -8,7 +8,13 @@ import { notFound } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 export default async function OrderConfirmationPage({ params }: { params: { orderNumber: string } }) {
-  const [order] = await db.select().from(orders).where(eq(orders.orderNumber, params.orderNumber)).limit(1);
+  let order: any = null;
+  try {
+    const [found] = await db.select().from(orders).where(eq(orders.orderNumber, params.orderNumber)).limit(1);
+    order = found;
+  } catch {
+    order = null;
+  }
   if (!order) notFound();
 
   return (

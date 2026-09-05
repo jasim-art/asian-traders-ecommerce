@@ -23,11 +23,16 @@ export default async function AccountPage() {
   if (!session) redirect("/account/login?redirect=/account");
   if (session.role === "admin") redirect("/admin");
 
-  const myOrders = await db
-    .select()
-    .from(orders)
-    .where(eq(orders.customerId, session.customerId))
-    .orderBy(desc(orders.createdAt));
+  let myOrders: any[] = [];
+  try {
+    myOrders = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.customerId, session.customerId))
+      .orderBy(desc(orders.createdAt));
+  } catch {
+    myOrders = [];
+  }
 
   return (
     <div className="max-w-[900px] mx-auto px-6 py-12">

@@ -8,10 +8,18 @@ declare global {
   var __atPgPool: Pool | undefined;
 }
 
+const connectionString =
+  process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/asian_traders";
+
 const pool =
   global.__atPgPool ??
   new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString,
+    connectionTimeoutMillis: 5000,
+    ssl:
+      process.env.DATABASE_URL?.includes("sslmode=require") || process.env.NODE_ENV === "production"
+        ? { rejectUnauthorized: false }
+        : undefined,
   });
 
 if (process.env.NODE_ENV !== "production") {
