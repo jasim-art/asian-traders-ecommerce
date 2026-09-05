@@ -1,30 +1,21 @@
-import { Pool } from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
 
-// Reuse the pool across hot-reloads in dev so we don't exhaust connections.
-declare global {
-  // eslint-disable-next-line no-var
-  var __atPgPool: Pool | undefined;
+// Use the Neon serverless HTTP driver. This avoids persistent TCP connection
+// overhead in serverless / edge environments (Vercel, etc.) where a traditional
+// pg.Pool would exhaust connections or time out on cold starts.
+//
+// DATABASE_URL must be set — failure to set it is a deployment configuration
+// error and we want a clear crash rather than silently falling back to localhost.
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    "DATABASE_URL environment variable is not set. " +
+      "Add it to .env.local for local development or to your Vercel project settings for production."
+  );
 }
 
-const connectionString =
-  process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/asian_traders";
+const sql = neon(process.env.DATABASE_URL);
 
-const pool =
-  global.__atPgPool ??
-  new Pool({
-    connectionString,
-    connectionTimeoutMillis: 5000,
-    ssl:
-      process.env.DATABASE_URL?.includes("sslmode=require") || process.env.NODE_ENV === "production"
-        ? { rejectUnauthorized: false }
-        : undefined,
-  });
-
-if (process.env.NODE_ENV !== "production") {
-  global.__atPgPool = pool;
-}
-
-export const db = drizzle(pool, { schema });
+export const db = drizzle(sql, { schema });
 export * as schema from "./schema";
